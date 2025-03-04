@@ -1,49 +1,82 @@
 package com.tigley.googlecontactactivity.controller;
 
 import com.tigley.googlecontactactivity.service.GoogleContactsService;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
+import com.google.api.services.people.v1.model.Person;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
+import java.io.IOException;
+import java.util.List;
 
 @Controller
+@RequestMapping("/")
 public class GoogleContactsController {
 
-    private final OAuth2AuthorizedClientService authorizedClientService;
     private final GoogleContactsService googleContactsService;
 
-    public GoogleContactsController(OAuth2AuthorizedClientService authorizedClientService,
-                                    GoogleContactsService googleContactsService) {
-        this.authorizedClientService = authorizedClientService;
+    public GoogleContactsController(GoogleContactsService googleContactsService) {
         this.googleContactsService = googleContactsService;
     }
 
+    @GetMapping
+    public String home() {
+        return "index"; 
+    }
+
+    @GetMapping("/profile")
+    public String profile(@AuthenticationPrincipal OidcUser principal, Model model) {
+        if (principal == null) {
+            return "redirect:/";
+        }
+        model.addAttribute("user", principal);
+        return "profile"; 
+    }
+
     @GetMapping("/contacts")
-    public String getContacts(OAuth2AuthenticationToken authentication, Model model) {
-        OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient(
-                authentication.getAuthorizedClientRegistrationId(), authentication.getName());
-
-        if (client == null) {
-            model.addAttribute("contacts", Map.of("error", "Not authorized to access Google Contacts"));
-            return "contacts";
+    public String contacts(Model model, OAuth2AuthenticationToken authentication) {
+        try {
+            List<Person> contacts = googleContactsService.getContacts(authentication);
+            model.addAttribute("contacts", contacts != null ? contacts : List.of());
+        } catch (IOException e) {
+            model.addAttribute("error", "Failed to fetch contacts.");
         }
+        return "contacts"; 
+    }
 
-        String accessToken = client.getAccessToken().getTokenValue();
-
-        // Fetch contacts from Google API
-        Map<String, Object> contacts = googleContactsService.getContacts(accessToken);
-
-        // Ensure contacts is always set
-        if (contacts == null) {
-            contacts = Map.of("error", "Failed to retrieve contacts");
+    //Add Contact
+    @PostMapping("/contacts/add")
+    public String addContact(@RequestParam String name, @RequestParam String email, @RequestParam String phone, OAuth2AuthenticationToken authentication) {
+        try {
+            googleContactsService.createContact(authentication, name, email, phone);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+        return "redirect:/contacts";
+    }
 
-        model.addAttribute("contacts", contacts);
+    //Update Contact
+    @PostMapping("/contacts/update")
+    public String updateContact(@RequestParam String resourceName, @RequestParam String name, @RequestParam String email, @RequestParam String phone, OAuth2AuthenticationToken authentication) {
+        try {
+            googleContactsService.updateContact(authentication, resourceName, name, email, phone);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return "redirect:/contacts";
+    }
 
-        return "contacts"; // Render contacts.html
+    //Delete Contact
+    @PostMapping("/contacts/delete")
+    public String deleteContact(@RequestParam String resourceName, OAuth2AuthenticationToken authentication) {
+        try {
+            googleContactsService.deleteContact(authentication, resourceName);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return "redirect:/contacts";
     }
 }
