@@ -21,21 +21,7 @@ public class GoogleContactsController {
     public GoogleContactsController(GoogleContactsService googleContactsService) {
         this.googleContactsService = googleContactsService;
     }
-
-    @GetMapping
-    public String home() {
-        return "index"; 
-    }
-
-    @GetMapping("/profile")
-    public String profile(@AuthenticationPrincipal OidcUser principal, Model model) {
-        if (principal == null) {
-            return "redirect:/";
-        }
-        model.addAttribute("user", principal);
-        return "profile"; 
-    }
-
+    
     @GetMapping("/contacts")
     public String contacts(Model model, OAuth2AuthenticationToken authentication) {
         try {
