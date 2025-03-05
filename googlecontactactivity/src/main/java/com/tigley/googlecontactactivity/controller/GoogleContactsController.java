@@ -21,7 +21,6 @@ public class GoogleContactsController {
     public GoogleContactsController(GoogleContactsService googleContactsService) {
         this.googleContactsService = googleContactsService;
     }
-    
     @GetMapping("/contacts")
     public String contacts(Model model, OAuth2AuthenticationToken authentication) {
         try {

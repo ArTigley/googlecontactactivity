@@ -38,7 +38,6 @@ public class GoogleContactsService {
 
         String accessToken = authorizedClient.getAccessToken().getTokenValue();
 
-        //Use full access scope
         GoogleCredentials credentials = GoogleCredentials.create(new AccessToken(accessToken, null))
                 .createScoped(Collections.singletonList("https://www.googleapis.com/auth/contacts"));
 
@@ -77,7 +76,7 @@ public class GoogleContactsService {
     public Person updateContact(OAuth2AuthenticationToken authentication, String resourceName, String newName, String newEmail,String newPhone) throws IOException {
         PeopleService peopleService = getPeopleService(authentication);
 
-        //Fetch the existing contact to get the etag
+
         Person existingContact = peopleService.people().get(resourceName)
                 .setPersonFields("names,emailAddresses,phoneNumbers")
                 .execute();
@@ -96,8 +95,6 @@ public class GoogleContactsService {
                 .setUpdatePersonFields("names,emailAddresses,phoneNumbers")
                 .execute();
     }
-
-    
     public void deleteContact(OAuth2AuthenticationToken authentication, String resourceName) throws IOException {
         PeopleService peopleService = getPeopleService(authentication);
         peopleService.people().deleteContact(resourceName).execute();
